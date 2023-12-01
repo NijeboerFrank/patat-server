@@ -30,9 +30,10 @@ impl Server {
         self.transfer_message(b"hello", &mut transport, &mut connection)
             .unwrap();
 
-        let _merkle_proof = self
+        let merkle_proof = self
             .receive_message(&mut transport, &mut connection)
             .unwrap();
+        println!("merkle root {:?}", merkle_proof);
 
         Ok(())
     }
