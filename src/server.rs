@@ -1,7 +1,9 @@
 use anyhow::Result;
 use snow::{Builder, Keypair, TransportState};
 
-use crate::{patat_connection::PatatConnection, patat_participant::PatatParticipant};
+use crate::{
+    evidence::EvidenceProof, patat_connection::PatatConnection, patat_participant::PatatParticipant,
+};
 
 pub struct Server {
     protocol_builder: Option<Builder<'static>>,
@@ -30,10 +32,12 @@ impl Server {
         self.transfer_message(b"hello", &mut transport, &mut connection)
             .unwrap();
 
-        let merkle_proof = self
+        let mut merkle_proof = self
             .receive_message(&mut transport, &mut connection)
             .unwrap();
         println!("merkle root {:?}", merkle_proof);
+        let evidence_proof: EvidenceProof = merkle_proof.into();
+        println!("valid: {:?}", evidence_proof.valid());
 
         Ok(())
     }
