@@ -1,27 +1,30 @@
+use std::net::TcpListener;
+
 use anyhow::Result;
-use snow::{Builder, Keypair, TransportState};
+use snow::{Keypair, TransportState};
 
 use crate::{
     evidence::EvidenceProof, patat_connection::PatatConnection, patat_participant::PatatParticipant,
 };
 
 pub struct Server {
-    protocol_builder: Option<Builder<'static>>,
     server_keypair: Keypair,
+    socket: TcpListener,
 }
 
 impl Server {
     pub fn new() -> Self {
-        let (protocol_builder, server_keypair) = Self::setup().unwrap();
+        let socket = TcpListener::bind(format!("0.0.0.0:{}", 65432)).unwrap();
+        let (_, server_keypair) = Self::setup().unwrap();
         Server {
-            protocol_builder: Some(protocol_builder),
             server_keypair,
+            socket,
         }
     }
 
-    pub fn run_server(mut self) -> Result<()> {
+    pub fn run_server(&mut self) -> Result<()> {
         self.write_keys_to_file()?;
-        let mut connection = PatatConnection::new(65432);
+        let mut connection = PatatConnection::new(&self.socket);
 
         // Now we can go to the Transport mode since the handshake is done
         let mut transport = self.run_handshake(&mut connection);
@@ -32,7 +35,7 @@ impl Server {
         self.transfer_message(b"hello", &mut transport, &mut connection)
             .unwrap();
 
-        let mut merkle_proof = self
+        let merkle_proof = self
             .receive_message(&mut transport, &mut connection)
             .unwrap();
         println!("merkle root {:?}", merkle_proof);
@@ -43,11 +46,10 @@ impl Server {
     }
 
     fn run_handshake(&mut self, connection: &mut PatatConnection) -> TransportState {
+        let (protocol_builder, _) = Self::setup().unwrap();
+        println!("Started the protocol");
         // Setup the handshake protocol
-        let mut protocol = self
-            .protocol_builder
-            .take()
-            .unwrap()
+        let mut protocol = protocol_builder
             // Hardcode private key for testing
             .local_private_key("very-secure-password-for-frieten".as_bytes())
             .build_responder()
@@ -55,6 +57,7 @@ impl Server {
 
         // -> e, es
         let message = &connection.receive_data().expect("Could not receive data");
+        println!("Received the first buffer data");
         let mut payload_buffer = vec![0u8; 65535];
         let _payload_length = protocol
             .read_message(message, &mut payload_buffer)

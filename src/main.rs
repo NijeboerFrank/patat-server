@@ -8,18 +8,21 @@ use evidence::{get_evidence, EvidenceProof};
 
 fn main() -> Result<()> {
     println!("Starting the UDP server...");
-    let patat_server = server::Server::new();
-    patat_server
-        .run_server()
-        .expect("Something went wrong on the server");
+    let mut patat_server = server::Server::new();
 
-    // let (lemma, path) = get_evidence();
+    for _ in 0..10 {
+        let _ = &patat_server
+            .run_server()
+            .expect("Something went wrong on the server");
 
-    // let e: EvidenceProof = EvidenceProof::new(path, lemma);
-    // let e_bytes: Vec<u8> = e.into();
+        let (lemma, path) = get_evidence();
 
-    // let another_e: EvidenceProof = e_bytes.into();
-    // println!("{}", another_e.valid());
+        let e: EvidenceProof = EvidenceProof::new(path, lemma);
+        let e_bytes: Vec<u8> = e.into();
+
+        let another_e: EvidenceProof = e_bytes.into();
+        println!("{}", another_e.valid());
+    }
 
     Ok(())
 }
