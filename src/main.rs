@@ -10,18 +10,22 @@ fn main() -> Result<()> {
     println!("Starting the UDP server...");
     let mut patat_server = server::Server::new();
 
-    for _ in 0..10 {
+    loop {
         let _ = &patat_server
             .run_server()
             .expect("Something went wrong on the server");
 
         let (lemma, path) = get_evidence();
 
-        let e: EvidenceProof = EvidenceProof::new(path, lemma);
+        let e = EvidenceProof::new(path, lemma);
         let e_bytes: Vec<u8> = e.into();
 
         let another_e: EvidenceProof = e_bytes.into();
-        println!("{}", another_e.valid());
+	let valid = another_e.valid();
+        println!("{}", valid);
+	if !valid {
+	    break;
+	}
     }
 
     Ok(())
